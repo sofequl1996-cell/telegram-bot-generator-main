@@ -1,139 +1,197 @@
 import random
 import string
-from faker import Faker
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from config import Config
+from typing import List, Dict
+import logging
 
-fake = Faker()
+logger = logging.getLogger(__name__)
+
 
 class AccountGenerator:
-    """Generate realistic accounts and addresses"""
+    """Generate demo student email accounts"""
+    
+    # বাংলাদেশের বিশ্ববিদ্যালয় ডেমো
+    BANGLADESH_UNIVERSITIES = [
+        {
+            'name': 'BUET',
+            'full_name': 'Bangladesh University of Engineering and Technology',
+            'domain': 'buet.ac.bd',
+            'email_format': lambda name: f'{name.lower()}@buet.ac.bd'
+        },
+        {
+            'name': 'KUET',
+            'full_name': 'Khulna University of Engineering & Technology',
+            'domain': 'kuet.ac.bd',
+            'email_format': lambda name: f'{name.lower()}.1803045@kuet.ac.bd'  # রোল ভিত্তিক
+        },
+        {
+            'name': 'DU',
+            'full_name': 'Dhaka University',
+            'domain': 'du.ac.bd',
+            'email_format': lambda name: f'{name.lower()}.std@du.ac.bd'
+        },
+        {
+            'name': 'KU',
+            'full_name': 'Khulna University',
+            'domain': 'ku.ac.bd',
+            'email_format': lambda name: f'{name.lower()}.220101@ku.ac.bd'
+        },
+        {
+            'name': 'DUET',
+            'full_name': 'Dhaka University of Engineering & Technology',
+            'domain': 'duet.ac.bd',
+            'email_format': lambda name: f'{name.lower()}.cmt@duet.ac.bd'  # ডিপার্টমেন্ট ভিত্তিক
+        },
+        {
+            'name': 'SUST',
+            'full_name': 'Shahjalal University of Science and Technology',
+            'domain': 'sust.edu',
+            'email_format': lambda name: f'{name.lower()}.stud@sust.edu'
+        },
+        {
+            'name': 'RU',
+            'full_name': 'Rajshahi University',
+            'domain': 'ru.ac.bd',
+            'email_format': lambda name: f'{name.lower()}.1234@ru.ac.bd'
+        },
+        {
+            'name': 'IUT',
+            'full_name': 'Islamic University of Technology',
+            'domain': 'iut-dhaka.edu',
+            'email_format': lambda name: f'{name.lower()}@iut-dhaka.edu'
+        },
+        {
+            'name': 'NSU',
+            'full_name': 'North South University',
+            'domain': 'nsu.edu',
+            'email_format': lambda name: f'{name.lower()}.student@nsu.edu'
+        },
+        {
+            'name': 'BRACU',
+            'full_name': 'BRAC University',
+            'domain': 'bracu.ac.bd',
+            'email_format': lambda name: f'{name.lower()}.cse@bracu.ac.bd'
+        },
+    ]
+    
+    # আমেরিকার বিশ্ববিদ্যালয় ডেমো
+    USA_UNIVERSITIES = [
+        {
+            'name': 'Harvard',
+            'full_name': 'Harvard University',
+            'domain': 'harvard.edu',
+            'email_format': lambda name: f'{name.lower()}@harvard.edu'
+        },
+        {
+            'name': 'Stanford',
+            'full_name': 'Stanford University',
+            'domain': 'stanford.edu',
+            'email_format': lambda name: f'{name.lower()}.std@stanford.edu'
+        },
+        {
+            'name': 'MIT',
+            'full_name': 'Massachusetts Institute of Technology',
+            'domain': 'mit.edu',
+            'email_format': lambda name: f'{name.lower()}123@mit.edu'
+        },
+        {
+            'name': 'Berkeley',
+            'full_name': 'UC Berkeley',
+            'domain': 'berkeley.edu',
+            'email_format': lambda name: f'r.{name.lower()}@berkeley.edu'
+        },
+        {
+            'name': 'Columbia',
+            'full_name': 'Columbia University',
+            'domain': 'columbia.edu',
+            'email_format': lambda name: f'{name.lower()}.student@columbia.edu'
+        },
+        {
+            'name': 'NYU',
+            'full_name': 'New York University',
+            'domain': 'nyu.edu',
+            'email_format': lambda name: f'{name.lower()}_std@nyu.edu'
+        },
+        {
+            'name': 'UCLA',
+            'full_name': 'UCLA',
+            'domain': 'ucla.edu',
+            'email_format': lambda name: f'{name.lower()}@ucla.edu'
+        },
+        {
+            'name': 'Yale',
+            'full_name': 'Yale University',
+            'domain': 'yale.edu',
+            'email_format': lambda name: f'{name.lower()}.26@yale.edu'
+        },
+        {
+            'name': 'Princeton',
+            'full_name': 'Princeton University',
+            'domain': 'princeton.edu',
+            'email_format': lambda name: f'{name.lower()}.stud@princeton.edu'
+        },
+        {
+            'name': 'Cornell',
+            'full_name': 'Cornell University',
+            'domain': 'cornell.edu',
+            'email_format': lambda name: f'{name.lower()}@cornell.edu'
+        },
+    ]
     
     @staticmethod
-    def generate_email(domain='gmail.com'):
-        """Generate random email address"""
-        username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
-        return f"{username}@{domain}"
-    
-    @staticmethod
-    def generate_password(length=16):
-        """Generate secure password"""
-        characters = string.ascii_letters + string.digits + "!@#$%^&*"
-        password = ''.join(random.choices(characters, k=length))
-        return password
-    
-    @staticmethod
-    def generate_full_address():
-        """Generate complete realistic address"""
-        return {
-            'full_name': fake.name(),
-            'street_address': fake.street_address(),
-            'city': fake.city(),
-            'state': fake.state(),
-            'postal_code': fake.postcode(),
-            'country': fake.country(),
-            'phone': fake.phone_number(),
-            'birth_date': fake.date_of_birth(minimum_age=18, maximum_age=80).strftime('%Y-%m-%d')
+    def generate_demo_emails() -> Dict[str, List[Dict]]:
+        """Generate demo emails for testing"""
+        demo_data = {
+            'BD': [],
+            'US': []
         }
+        
+        # বাংলাদেশের ডেমো ইমেইল
+        for uni in AccountGenerator.BANGLADESH_UNIVERSITIES:
+            email = uni['email_format']('rahim')
+            demo_data['BD'].append({
+                'email': email,
+                'university': uni['name'],
+                'university_full': uni['full_name'],
+                'domain': uni['domain'],
+                'country': 'Bangladesh 🇧🇩'
+            })
+        
+        # আমেরিকার ডেমো ইমেইল
+        for uni in AccountGenerator.USA_UNIVERSITIES:
+            email = uni['email_format']('rahim')
+            demo_data['US'].append({
+                'email': email,
+                'university': uni['name'],
+                'university_full': uni['full_name'],
+                'domain': uni['domain'],
+                'country': 'USA 🇺🇸'
+            })
+        
+        return demo_data
     
     @staticmethod
-    def generate_complete_account():
-        """Generate complete account data"""
-        address = AccountGenerator.generate_full_address()
-        return {
-            'email': AccountGenerator.generate_email(),
-            'password': AccountGenerator.generate_password(),
-            'recovery_email': fake.email(),
-            'recovery_phone': fake.phone_number(),
-            **address
-        }
-
-class EmailService:
-    """Handle email operations"""
+    def generate_password(length: int = 12) -> str:
+        """Generate a random password"""
+        characters = string.ascii_letters + string.digits + string.punctuation
+        return ''.join(random.choice(characters) for _ in range(length))
     
-    def __init__(self):
-        self.email = Config.EMAIL_USERNAME
-        self.password = Config.EMAIL_PASSWORD
-        self.smtp_server = self._get_smtp_server()
-    
-    def _get_smtp_server(self):
-        """Get SMTP server based on email provider"""
-        if 'gmail' in self.email:
-            return 'smtp.gmail.com'
-        elif 'outlook' in self.email:
-            return 'smtp-mail.outlook.com'
-        else:
-            return 'smtp.google.com'
-    
-    def send_verification_email(self, to_email, verification_code):
-        """Send verification email"""
-        try:
-            subject = "Email Verification - Telegram Bot Generator"
-            body = f"""
-            <html>
-                <body style="font-family: Arial, sans-serif;">
-                    <h2>Email Verification</h2>
-                    <p>Your verification code is:</p>
-                    <h1 style="color: #007bff; letter-spacing: 2px;">{verification_code}</h1>
-                    <p>This code will expire in 10 minutes.</p>
-                </body>
-            </html>
-            """
-            
-            self._send_email(to_email, subject, body)
-            return True
-        except Exception as e:
-            print(f"Error sending verification email: {e}")
-            return False
-    
-    def send_account_details(self, to_email, account_data):
-        """Send generated account details"""
-        try:
-            subject = "Your Generated Account Details"
-            body = f"""
-            <html>
-                <body style="font-family: Arial, sans-serif;">
-                    <h2>Account Generated Successfully!</h2>
-                    <hr>
-                    <h3>Account Information:</h3>
-                    <p><strong>Email:</strong> {account_data['email']}</p>
-                    <p><strong>Password:</strong> {account_data['password']}</p>
-                    <hr>
-                    <h3>Address Information:</h3>
-                    <p><strong>Name:</strong> {account_data['full_name']}</p>
-                    <p><strong>Address:</strong> {account_data['street_address']}</p>
-                    <p><strong>City:</strong> {account_data['city']}</p>
-                    <p><strong>State:</strong> {account_data['state']}</p>
-                    <p><strong>Postal Code:</strong> {account_data['postal_code']}</p>
-                    <p><strong>Country:</strong> {account_data['country']}</p>
-                    <p><strong>Phone:</strong> {account_data['phone']}</p>
-                    <p><strong>Birth Date:</strong> {account_data['birth_date']}</p>
-                    <hr>
-                    <p><strong>Recovery Email:</strong> {account_data['recovery_email']}</p>
-                    <p><strong>Recovery Phone:</strong> {account_data['recovery_phone']}</p>
-                    <hr>
-                    <p style="color: #999; font-size: 12px;">Keep this information safe!</p>
-                </body>
-            </html>
-            """
-            
-            self._send_email(to_email, subject, body)
-            return True
-        except Exception as e:
-            print(f"Error sending account details: {e}")
-            return False
-    
-    def _send_email(self, to_email, subject, body):
-        """Internal method to send email"""
-        message = MIMEMultipart('alternative')
-        message['Subject'] = subject
-        message['From'] = self.email
-        message['To'] = to_email
+    @staticmethod
+    def get_demo_data_table() -> str:
+        """Get formatted demo data table"""
+        demo_emails = AccountGenerator.generate_demo_emails()
         
-        message.attach(MIMEText(body, 'html'))
+        table = "\n📧 **DEMO STUDENT EMAILS** 📧\n\n"
         
-        with smtplib.SMTP_SSL(self.smtp_server, 465) as server:
-            server.login(self.email, self.password)
-            server.sendmail(self.email, to_email, message.as_string())
+        table += "🇧🇩 **BANGLADESH - ১০টি বিশ্ববিদ্যালয়**\n"
+        table += "="*50 + "\n"
+        for i, email_data in enumerate(demo_emails['BD'], 1):
+            table += f"{i}. {email_data['email']}\n"
+            table += f"   ({email_data['university_full']})\n\n"
+        
+        table += "\n🇺🇸 **USA - ১০টি বিশ্ববিদ্যালয়**\n"
+        table += "="*50 + "\n"
+        for i, email_data in enumerate(demo_emails['US'], 1):
+            table += f"{i}. {email_data['email']}\n"
+            table += f"   ({email_data['university_full']})\n\n"
+        
+        return table

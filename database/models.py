@@ -1,138 +1,66 @@
-from datetime import datetime
-from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Boolean, Text, ForeignKey, Enum
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
 from sqlalchemy.orm import relationship
-import enum
+from datetime import datetime
+from database.db import Base
+import uuid
 
-Base = declarative_base()
-
-class PlanType(enum.Enum):
-    FREE = "free"
-    BASIC = "basic"
-    PRO = "pro"
-    ENTERPRISE = "enterprise"
 
 class User(Base):
-    """User Model"""
-    __tablename__ = 'users'
+    __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True)
-    telegram_id = Column(String(50), unique=True, nullable=False, index=True)
-    username = Column(String(255))
-    first_name = Column(String(255))
-    last_name = Column(String(255))
-    email = Column(String(255), unique=True)
-    phone = Column(String(20))
-    
-    # Subscription
-    plan = Column(Enum(PlanType), default=PlanType.FREE)
-    subscription_active = Column(Boolean, default=True)
-    subscription_end_date = Column(DateTime)
-    
-    # Usage tracking
-    generations_used = Column(Integer, default=0)
-    reset_date = Column(DateTime, default=datetime.utcnow)
-    
-    # Account info
-    is_admin = Column(Boolean, default=False)
-    is_banned = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    generated_accounts = relationship("GeneratedAccount", back_populates="user", cascade="all, delete-orphan")
-    transactions = relationship("Transaction", back_populates="user", cascade="all, delete-orphan")
-    
-    def __repr__(self):
-        return f"<User {self.username} ({self.telegram_id})>"
-
-class GeneratedAccount(Base):
-    """Generated Account Model"""
-    __tablename__ = 'generated_accounts'
-    
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-    
-    # Account details
-    email = Column(String(255), unique=True, nullable=False)
-    password = Column(String(255), nullable=False)
-    
-    # Generated address
-    full_name = Column(String(255))
-    street_address = Column(String(255))
-    city = Column(String(100))
-    state = Column(String(100))
-    postal_code = Column(String(20))
-    country = Column(String(100))
-    phone = Column(String(20))
-    
-    # Additional info
-    recovery_email = Column(String(255))
-    recovery_phone = Column(String(20))
-    birth_date = Column(String(20))
-    
-    # Account status
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    telegram_id = Column(Integer, unique=True, nullable=False, index=True)
+    username = Column(String, unique=True, nullable=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    email = Column(String, unique=True, nullable=True, index=True)
+    phone = Column(String, nullable=True)
+    country = Column(String, nullable=True)  # 'BD' or 'US'
+    account_type = Column(String, nullable=True)  # 'student', 'teacher'
+    university = Column(String, nullable=True)
     is_verified = Column(Boolean, default=False)
-    verification_code = Column(String(10))
-    inbox_access = Column(Boolean, default=False)
-    
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship
-    user = relationship("User", back_populates="generated_accounts")
+    accounts = relationship("Account", back_populates="user")
     
     def __repr__(self):
-        return f"<GeneratedAccount {self.email}>"
+        return f"<User {self.username}>"
 
-class Transaction(Base):
-    """Transaction Model for Payments"""
-    __tablename__ = 'transactions'
+
+class Account(Base):
+    __tablename__ = "accounts"
     
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
-    
-    plan = Column(Enum(PlanType), nullable=False)
-    amount = Column(Float, nullable=False)
-    currency = Column(String(10), default='USD')
-    
-    status = Column(String(50), default='pending')  # pending, completed, failed, cancelled
-    payment_method = Column(String(50))  # stripe, razorpay, manual
-    transaction_id = Column(String(255), unique=True)
-    
-    duration_days = Column(Integer, default=30)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)
+    university = Column(String, nullable=False)
+    country = Column(String, nullable=False)  # 'BD' or 'US'
+    account_status = Column(String, default='active')  # active, suspended, deleted
+    is_email_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship
-    user = relationship("User", back_populates="transactions")
+    user = relationship("User", back_populates="accounts")
     
     def __repr__(self):
-        return f"<Transaction {self.transaction_id} - {self.status}>"
+        return f"<Account {self.email}>"
 
-class AdminLog(Base):
-    """Admin Action Log"""
-    __tablename__ = 'admin_logs'
-    
-    id = Column(Integer, primary_key=True)
-    admin_id = Column(String(50), nullable=False)
-    action = Column(String(255), nullable=False)
-    target_user_id = Column(String(50))
-    details = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    
-    def __repr__(self):
-        return f"<AdminLog {self.action} by {self.admin_id}>"
 
-class SystemConfig(Base):
-    """System Configuration"""
-    __tablename__ = 'system_config'
+class EmailLog(Base):
+    __tablename__ = "email_logs"
     
-    id = Column(Integer, primary_key=True)
-    key = Column(String(255), unique=True, nullable=False)
-    value = Column(Text)
-    description = Column(String(500))
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    recipient_email = Column(String, nullable=False, index=True)
+    subject = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    status = Column(String, default='pending')  # pending, sent, failed
+    error_message = Column(Text, nullable=True)
+    sent_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     def __repr__(self):
-        return f"<SystemConfig {self.key}>"
+        return f"<EmailLog {self.recipient_email}>"
