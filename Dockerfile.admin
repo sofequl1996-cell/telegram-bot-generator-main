@@ -1,0 +1,22 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# সিস্টেম নির্ভরতা ইনস্টল করুন
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python নির্ভরতা ইনস্টল করুন
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# অ্যাপ্লিকেশন কোড কপি করুন
+COPY admin/ ./admin/
+COPY services/ ./services/
+COPY database/ ./database/
+COPY config.py .
+
+# প্রশাসন প্যানেল চালু করুন
+CMD ["python", "-u", "admin/app.py"]

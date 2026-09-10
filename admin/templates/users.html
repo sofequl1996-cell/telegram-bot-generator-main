@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .container {
+            display: flex;
+            min-height: calc(100vh - 70px);
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .sidebar a {
+            display: block;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        
+        .sidebar a.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .content {
+            flex: 1;
+            padding: 30px;
+        }
+        
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .section h2 {
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        
+        .search-box {
+            flex: 1;
+            max-width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th {
+            background: #f5f7fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e3e8;
+        }
+        
+        table td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e3e8;
+        }
+        
+        table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 11px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>👥 Users Management</h1>
+        <a href="/logout" style="color: white; text-decoration: none;">Logout</a>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/users" class="active">👥 Users</a>
+            <a href="/accounts">📧 Accounts</a>
+            <a href="/stats">📈 Statistics</a>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>Users List</h2>
+                
+                <div class="controls">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search users...">
+                    </div>
+                </div>
+                
+                <div id="usersContainer" class="loading">Loading users...</div>
+                
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        const perPage = 10;
+        
+        async function loadUsers(page = 1) {
+            try {
+                const response = await fetch(`/api/users?page=${page}&per_page=${perPage}`);
+                const data = await response.json();
+                
+                let html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Plan</th>
+                                <th>Generated</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                data.users.forEach(user => {
+                    const statusBadge = user.is_banned 
+                        ? '<span class="badge badge-danger">Banned</span>'
+                        : '<span class="badge badge-success">Active</span>';
+                    
+                    html += `
+                        <tr>
+                            <td>@${user.username || 'N/A'}</td>
+                            <td><span class="badge badge-warning">${user.plan}</span></td>
+                            <td>${user.generated}</td>
+                            <td>${statusBadge}</td>
+                            <td>${new Date(user.created_at).toLocaleDateString()}</td>
+                            <td>
+                                <a href="#" onclick="viewUser(${user.id})" class="btn btn-sm btn-primary">View</a>
+                                ${user.is_banned 
+                                    ? `<button onclick="unbanUser(${user.id})" class="btn btn-sm btn-primary">Unban</button>`
+                                    : `<button onclick="banUser(${user.id})" class="btn btn-sm btn-danger">Ban</button>`
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                document.getElementById('usersContainer').innerHTML = html;
+                
+                // Pagination
+                let paginationHtml = '';
+                for (let i = 1; i <= data.pages; i++) {
+                    paginationHtml += `
+                        <button ${i === page ? 'class="active"' : ''} onclick="loadUsers(${i})">
+                            ${i}
+                        </button>
+                    `;
+                }
+                document.getElementById('pagination').innerHTML = paginationHtml;
+                currentPage = page;
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('usersContainer').innerHTML = '<p>Error loading users</p>';
+            }
+        }
+        
+        function viewUser(userId) {
+            window.location.href = `/user/${userId}`;
+        }
+        
+        async function banUser(userId) {
+            if (confirm('Are you sure you want to ban this user?')) {
+                try {
+                    await fetch(`/api/users/${userId}/ban`, { method: 'POST' });
+                    loadUsers(currentPage);
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+        
+        async function unbanUser(userId) {
+            try {
+                await fetch(`/api/users/${userId}/unban`, { method: 'POST' });
+                loadUsers(currentPage);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Load users on page load
+        loadUsers();
+    </script>
+</body>
+</html>
