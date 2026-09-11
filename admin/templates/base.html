@@ -31,14 +31,29 @@
             font-size: 1.5rem;
         }
         
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            margin-left: 2rem;
+        .nav-menu {
+            display: flex;
+            gap: 0;
         }
         
-        .navbar a:hover {
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-menu a:hover {
+            background-color: #34495e;
             color: #3498db;
+        }
+        
+        .nav-menu a.active {
+            background-color: #3498db;
+            color: white;
         }
         
         .container {
@@ -110,6 +125,7 @@
             border: none;
             cursor: pointer;
             font-size: 1rem;
+            transition: all 0.3s;
         }
         
         .btn-primary {
@@ -130,6 +146,24 @@
             background-color: #c0392b;
         }
         
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #229954;
+        }
+        
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        
         .badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -146,6 +180,54 @@
             background-color: #e74c3c;
             color: white;
         }
+        
+        .badge-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        
+        .badge-info {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        h2 {
+            color: white;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -153,10 +235,22 @@
     {% if session.get('admin_logged_in') %}
     <nav class="navbar">
         <h1>📱 Telegram Bot Admin Panel</h1>
-        <div>
-            <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('admin.users') }}">Users</a>
-            <a href="{{ url_for('admin.logout') }}">Logout</a>
+        <div class="nav-menu">
+            <a href="{{ url_for('admin.dashboard') }}" 
+               class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                📊 Dashboard
+            </a>
+            <a href="{{ url_for('admin.users') }}" 
+               class="{% if request.endpoint == 'admin.users' %}active{% endif %}">
+                👥 Users
+            </a>
+            <a href="{{ url_for('admin.inbox') }}" 
+               class="{% if request.endpoint == 'admin.inbox' or request.endpoint == 'admin.view_email' %}active{% endif %}">
+                📧 Inbox
+            </a>
+            <a href="{{ url_for('admin.logout') }}">
+                🚪 Logout
+            </a>
         </div>
     </nav>
     {% endif %}
@@ -165,12 +259,18 @@
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
-                    <div class="card" style="background-color: #d4edda; color: #155724;">
-                        {{ message }}
+                    <div class="alert alert-success">
+                        ✅ {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
+
+        {% if error %}
+            <div class="alert alert-danger">
+                ❌ {{ error }}
+            </div>
+        {% endif %}
         
         {% block content %}{% endblock %}
     </div>
